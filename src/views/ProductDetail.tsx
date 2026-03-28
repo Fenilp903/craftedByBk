@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
 import { useCart } from "../context/CartContext";
 import { ShoppingCart, Heart, Truck, Shield, ArrowLeft, Plus, Minus, Star } from "lucide-react";
 import { toast } from "sonner";
@@ -19,10 +17,10 @@ export default function ProductDetail() {
       if (!id) return;
       setLoading(true);
       try {
-        const docRef = doc(db, "products", id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setProduct({ id: docSnap.id, ...docSnap.data() });
+        const res = await fetch(`/api/products/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setProduct(data);
         }
       } catch (error) {
         console.error("Error fetching product:", error);
@@ -39,7 +37,7 @@ export default function ProductDetail() {
       name: product.name,
       price: product.price,
       quantity: quantity,
-      image: product.images?.[0] || "https://picsum.photos/seed/product/400/400"
+      image: product.image || product.images?.[0] || "https://picsum.photos/seed/product/400/400"
     });
     toast.success(`${product.name} added to cart`);
   };
@@ -83,14 +81,14 @@ export default function ProductDetail() {
         >
           <div className="aspect-square rounded-3xl overflow-hidden bg-neutral-100 border border-neutral-100">
             <img 
-              src={product.images?.[0] || "https://picsum.photos/seed/product/800/800"} 
+              src={product.image || product.images?.[0] || "https://picsum.photos/seed/product/800/800"} 
               alt={product.name}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
           </div>
           <div className="grid grid-cols-4 gap-4">
-            {(product.images || [1, 2, 3, 4]).map((img: any, i: number) => (
+            {(product.images || [product.image || 1, 2, 3, 4]).map((img: any, i: number) => (
               <div key={i} className="aspect-square rounded-xl overflow-hidden bg-neutral-100 cursor-pointer hover:opacity-70 transition-opacity">
                 <img 
                   src={typeof img === 'string' ? img : `https://picsum.photos/seed/${i}/200/200`} 

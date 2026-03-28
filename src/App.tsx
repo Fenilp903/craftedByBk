@@ -9,6 +9,8 @@ import Cart from "./views/Cart";
 import Checkout from "./views/Checkout";
 import About from "./views/About";
 import Contact from "./views/Contact";
+import Login from "./views/Login";
+import Register from "./views/Register";
 import AdminDashboard from "./views/Admin/Dashboard";
 import AdminProducts from "./views/Admin/Products";
 import AdminOrders from "./views/Admin/Orders";
@@ -31,6 +33,8 @@ export default function App() {
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/products" element={<AdminProducts />} />
                 <Route path="/admin/orders" element={<AdminOrders />} />

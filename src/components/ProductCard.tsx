@@ -15,7 +15,7 @@ export default function ProductCard({ product }: { product: any, key?: string | 
       name: product.name,
       price: product.price,
       quantity: 1,
-      image: product.images?.[0] || "https://picsum.photos/seed/product/400/400"
+      image: product.image || product.images?.[0] || "https://picsum.photos/seed/product/400/400"
     });
     toast.success(`${product.name} added to cart`);
   };
@@ -24,7 +24,7 @@ export default function ProductCard({ product }: { product: any, key?: string | 
     <Link to={`/product/${product.id}`} className="group space-y-4">
       <div className="relative aspect-square overflow-hidden rounded-2xl bg-neutral-100">
         <img 
-          src={product.images?.[0] || "https://picsum.photos/seed/product/400/400"} 
+          src={product.image || product.images?.[0] || "https://picsum.photos/seed/product/400/400"} 
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           referrerPolicy="no-referrer"

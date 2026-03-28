@@ -1,65 +1,64 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, User, signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { auth, db } from "../firebase";
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
 
 interface AuthContextType {
   user: User | null;
-  profile: any | null;
+  profile: User | null;
   loading: boolean;
   isAdmin: boolean;
-  login: () => Promise<void>;
-  logout: () => Promise<void>;
+  login: (token: string, userData: User) => void;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setProfile(docSnap.data());
-        } else {
-          const newProfile = {
-            uid: user.uid,
-            name: user.displayName,
-            email: user.email,
-            role: "user",
-            createdAt: new Date().toISOString(),
-          };
-          await setDoc(docRef, newProfile);
-          setProfile(newProfile);
+    const checkAuth = async () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const res = await fetch("/api/auth/me", {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setUser(data.user);
+          } else {
+            localStorage.removeItem("token");
+          }
+        } catch (error) {
+          console.error("Auth check failed", error);
         }
-      } else {
-        setProfile(null);
       }
       setLoading(false);
-    });
-
-    return () => unsubscribe();
+    };
+    checkAuth();
   }, []);
 
-  const login = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+  const login = (token: string, userData: User) => {
+    localStorage.setItem("token", token);
+    setUser(userData);
   };
 
-  const logout = async () => {
-    await signOut(auth);
+  const logout = () => {
+    localStorage.removeItem("token");
+    setUser(null);
   };
 
-  const isAdmin = profile?.role === "admin" || user?.email === "pfenil903@gmail.com";
+  const isAdmin = user?.role === "admin" || user?.email === "pfenil903@gmail.com";
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAdmin, login, logout }}>
+    <AuthContext.Provider value={{ user, profile: user, loading, isAdmin, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, updateDoc, doc } from "firebase/firestore";
-import { db } from "../../firebase";
 import { ShoppingBag, Search, Filter, Eye, CheckCircle2, Truck, Clock } from "lucide-react";
 import { toast } from "sonner";
 
@@ -12,10 +10,14 @@ export default function AdminOrders() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-      const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setOrders(data);
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/orders", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(data);
+      }
     } catch (error) {
       console.error("Error fetching orders:", error);
     }
@@ -28,9 +30,21 @@ export default function AdminOrders() {
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      await updateDoc(doc(db, "orders", id), { status });
-      toast.success(`Order status updated to ${status}`);
-      fetchOrders();
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/orders/${id}/status`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        toast.success(`Order status updated to ${status}`);
+        fetchOrders();
+      } else {
+        toast.error("Error updating status");
+      }
     } catch (error) {
       toast.error("Error updating status");
     }
@@ -78,7 +92,7 @@ export default function AdminOrders() {
               <tr key={order.id} className="hover:bg-neutral-50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="space-y-1">
-                    <p className="text-sm font-bold text-neutral-900">#{order.id.slice(0, 8)}</p>
+                    <p className="text-sm font-bold text-neutral-900">#{order.id}</p>
                     <p className="text-[10px] text-neutral-400 uppercase tracking-widest">
                       {new Date(order.createdAt).toLocaleDateString()}
                     </p>

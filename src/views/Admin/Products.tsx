@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
-import { db } from "../../firebase";
 import { Plus, Trash2, Edit2, Package, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -15,9 +13,11 @@ export default function AdminProducts() {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const querySnapshot = await getDocs(collection(db, "products"));
-      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setProducts(data);
+      const res = await fetch("/api/products");
+      if (res.ok) {
+        const data = await res.json();
+        setProducts(data);
+      }
     } catch (error) {
       console.error("Error fetching products:", error);
     }
@@ -34,25 +34,41 @@ export default function AdminProducts() {
         ...data,
         price: parseFloat(data.price),
         stock: parseInt(data.stock),
-        images: [data.image || "https://picsum.photos/seed/product/400/400"],
-        updatedAt: new Date().toISOString()
+        image: data.image || "https://picsum.photos/seed/product/400/400"
       };
 
-      if (editingProduct) {
-        await updateDoc(doc(db, "products", editingProduct.id), productData);
-        toast.success("Product updated successfully");
-      } else {
-        await addDoc(collection(db, "products"), {
-          ...productData,
-          createdAt: new Date().toISOString()
-        });
-        toast.success("Product added successfully");
-      }
+      const token = localStorage.getItem("token");
       
-      setShowModal(false);
-      setEditingProduct(null);
-      reset();
-      fetchProducts();
+      let res;
+      if (editingProduct) {
+        res = await fetch(`/api/products/${editingProduct.id}`, {
+          method: "PUT",
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(productData)
+        });
+      } else {
+        res = await fetch("/api/products", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(productData)
+        });
+      }
+
+      if (res.ok) {
+        toast.success(editingProduct ? "Product updated successfully" : "Product added successfully");
+        setShowModal(false);
+        setEditingProduct(null);
+        reset();
+        fetchProducts();
+      } else {
+        toast.error("Error saving product");
+      }
     } catch (error) {
       toast.error("Error saving product");
     }
@@ -61,9 +77,17 @@ export default function AdminProducts() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
     try {
-      await deleteDoc(doc(db, "products", id));
-      toast.success("Product deleted");
-      fetchProducts();
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/products/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        toast.success("Product deleted");
+        fetchProducts();
+      } else {
+        toast.error("Error deleting product");
+      }
     } catch (error) {
       toast.error("Error deleting product");
     }
@@ -76,7 +100,7 @@ export default function AdminProducts() {
     setValue("stock", product.stock);
     setValue("category", product.category);
     setValue("description", product.description);
-    setValue("image", product.images?.[0]);
+    setValue("image", product.image || product.images?.[0]);
     setShowModal(true);
   };
 
@@ -114,7 +138,7 @@ export default function AdminProducts() {
                 <td className="px-6 py-4">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-neutral-100">
-                      <img src={product.images?.[0]} alt="" className="w-full h-full object-cover" />
+                      <img src={product.image || product.images?.[0]} alt="" className="w-full h-full object-cover" />
                     </div>
                     <span className="font-bold text-neutral-900">{product.name}</span>
                   </div>

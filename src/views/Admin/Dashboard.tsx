@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
-import { collection, getDocs, addDoc, query, orderBy, limit } from "firebase/firestore";
-import { db } from "../../firebase";
 import { 
   Package, 
   ShoppingBag, 
@@ -35,18 +33,19 @@ export default function AdminDashboard() {
     const fetchStats = async () => {
       setLoading(true);
       try {
-        const productsSnap = await getDocs(collection(db, "products"));
-        const ordersSnap = await getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(5)));
-        
-        const ordersData = ordersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-        const totalRevenue = ordersData.reduce((sum, order) => sum + (order.total || 0), 0);
-
-        setStats({
-          products: productsSnap.size,
-          orders: ordersSnap.size,
-          revenue: totalRevenue
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/stats", {
+          headers: { Authorization: `Bearer ${token}` }
         });
-        setRecentOrders(ordersData);
+        if (res.ok) {
+          const data = await res.json();
+          setStats({
+            products: data.products,
+            orders: data.orders,
+            revenue: data.revenue
+          });
+          setRecentOrders(data.recentOrders);
+        }
       } catch (error) {
         console.error("Error fetching stats:", error);
       }
@@ -58,15 +57,23 @@ export default function AdminDashboard() {
 
   const seedData = async () => {
     const products = [
-      { name: "Handcrafted Oak Desk Organizer", price: 45, category: "Home Decor", description: "A beautiful desk organizer made from solid oak wood.", stock: 15, images: ["https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=600"], createdAt: new Date().toISOString() },
-      { name: "Custom Engraved Leather Wallet", price: 65, category: "Accessories", description: "Premium leather wallet with custom engraving options.", stock: 20, images: ["https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&q=80&w=600"], createdAt: new Date().toISOString() },
-      { name: "Ceramic Minimalist Vase", price: 35, category: "Home Decor", description: "Elegant minimalist vase for any modern home.", stock: 10, images: ["https://images.unsplash.com/photo-1581783898377-1c85bf937427?auto=format&fit=crop&q=80&w=600"], createdAt: new Date().toISOString() },
-      { name: "Hand-Woven Cotton Throw", price: 85, category: "Home Decor", description: "Soft, hand-woven cotton throw for cozy evenings.", stock: 5, images: ["https://images.unsplash.com/photo-1580301762395-21ce84d00bc6?auto=format&fit=crop&q=80&w=600"], createdAt: new Date().toISOString() }
+      { name: "Handcrafted Oak Desk Organizer", price: 45, category: "Home Decor", description: "A beautiful desk organizer made from solid oak wood.", stock: 15, image: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=600" },
+      { name: "Custom Engraved Leather Wallet", price: 65, category: "Accessories", description: "Premium leather wallet with custom engraving options.", stock: 20, image: "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&q=80&w=600" },
+      { name: "Ceramic Minimalist Vase", price: 35, category: "Home Decor", description: "Elegant minimalist vase for any modern home.", stock: 10, image: "https://images.unsplash.com/photo-1581783898377-1c85bf937427?auto=format&fit=crop&q=80&w=600" },
+      { name: "Hand-Woven Cotton Throw", price: 85, category: "Home Decor", description: "Soft, hand-woven cotton throw for cozy evenings.", stock: 5, image: "https://images.unsplash.com/photo-1580301762395-21ce84d00bc6?auto=format&fit=crop&q=80&w=600" }
     ];
 
     try {
+      const token = localStorage.getItem("token");
       for (const p of products) {
-        await addDoc(collection(db, "products"), p);
+        await fetch("/api/products", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(p)
+        });
       }
       toast.success("Sample products added successfully!");
       window.location.reload();
@@ -82,7 +89,7 @@ export default function AdminDashboard() {
       <div className="flex justify-between items-center">
         <div className="space-y-1">
           <h1 className="text-4xl font-serif font-bold text-neutral-900">Admin Dashboard</h1>
-          <p className="text-neutral-500">Welcome back, {user?.displayName}</p>
+          <p className="text-neutral-500">Welcome back, {user?.name}</p>
         </div>
         <div className="flex space-x-4">
           <button 
@@ -146,7 +153,7 @@ export default function AdminDashboard() {
                 <tbody className="divide-y divide-neutral-100">
                   {recentOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-neutral-50 transition-colors">
-                      <td className="px-6 py-4 text-sm font-medium text-neutral-900">#{order.id.slice(0, 8)}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-neutral-900">#{order.id}</td>
                       <td className="px-6 py-4 text-sm text-neutral-600">{order.address?.fullName || "Guest"}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${

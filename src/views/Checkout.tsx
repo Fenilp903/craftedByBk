@@ -23,13 +23,18 @@ export default function Checkout() {
 
     setLoading(true);
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch("/api/create-checkout-session", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
           items,
           successUrl: `${window.location.origin}/admin?order_success=true`,
           cancelUrl: `${window.location.origin}/cart`,
+          address: data
         }),
       });
 

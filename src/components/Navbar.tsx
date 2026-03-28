@@ -49,9 +49,9 @@ export default function Navbar() {
                   </button>
                 </div>
               ) : (
-                <button onClick={login} className="p-2 text-neutral-600 hover:text-neutral-900 transition-colors">
+                <Link to="/login" className="p-2 text-neutral-600 hover:text-neutral-900 transition-colors">
                   <User className="w-6 h-6" />
-                </button>
+                </Link>
               )}
             </div>
           </div>
@@ -85,10 +85,10 @@ export default function Navbar() {
           {user ? (
             <>
               {isAdmin && <Link to="/admin" className="block text-neutral-600 py-2" onClick={() => setIsOpen(false)}>Admin Dashboard</Link>}
-              <button onClick={() => { logout(); setIsOpen(false); }} className="block text-neutral-600 py-2">Logout</button>
+              <button onClick={() => { logout(); setIsOpen(false); }} className="block text-neutral-600 py-2 text-left">Logout</button>
             </>
           ) : (
-            <button onClick={() => { login(); setIsOpen(false); }} className="block text-neutral-600 py-2">Login</button>
+            <Link to="/login" className="block text-neutral-600 py-2" onClick={() => setIsOpen(false)}>Login</Link>
           )}
         </div>
       )}

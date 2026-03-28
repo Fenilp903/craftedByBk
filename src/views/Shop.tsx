@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../firebase";
 import ProductCard from "../components/ProductCard";
 import { Filter, Search, SlidersHorizontal } from "lucide-react";
 
@@ -14,13 +12,12 @@ export default function Shop() {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const q = category === "All" 
-          ? collection(db, "products")
-          : query(collection(db, "products"), where("category", "==", category));
-        
-        const querySnapshot = await getDocs(q);
-        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setProducts(data);
+        const url = category === "All" ? "/api/products" : `/api/products?category=${encodeURIComponent(category)}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          setProducts(data);
+        }
       } catch (error) {
         console.error("Error fetching products:", error);
       }
